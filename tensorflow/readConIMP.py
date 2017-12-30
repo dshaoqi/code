@@ -1,5 +1,9 @@
+#effect : improve the readContent.py  (may avoid the MemoryError)
+
+
 import os 
 import struct
+
 
 dirx='/home/dsq0/mypython/tensorflow/minist_data/'
 
@@ -22,7 +26,7 @@ def getContent(lab):
           con=f.read(1024)
           if len(con)==0 :
               break
-          for i in range(0,len(con)):
+          for i in range(len(con)):
              x.append(struct.unpack('B',con[i])[0])
        else:
           con=con+f.read(8)
@@ -33,7 +37,7 @@ def getContent(lab):
             con=f.read(1024)
             if len(con)==0:
                break
-            for i in range(0,len(con)):
+            for i in range(len(con)):
                x.append(struct.unpack('B',con[i])[0])
    
       # print x
@@ -45,7 +49,9 @@ def getContent(lab):
 
 if __name__=='__main__':
    
-   f1=getContent('TR-L')
-   
-
+   fx=getContent('TR-L')
+  # for i in range(10):
+  #    print fx[i]
+   del(fx[0])
+   print fx[0]
 
