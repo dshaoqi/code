@@ -12,28 +12,40 @@ def getContent(lab):
   for i in filec:
     if i==lab :
        f=open(dirx+filec[i])
-       con=f.read()
+       con=f.read(8)
        x=list(struct.unpack('i',con[0:4][::-1]))
        x.append(struct.unpack('i',con[4:8][::-1])[0])
        
        if lab=='TR-L' or lab=='TE-L':
-          for i in range(8,len(con)):
+         while 1:
+          del(con)
+          con=f.read(1024)
+          if len(con)==0 :
+              break
+          for i in range(0,len(con)):
              x.append(struct.unpack('B',con[i])[0])
        else:
+          con=con+f.read(8)
           x.append(struct.unpack('i',con[8:12][::-1])[0])
           x.append(struct.unpack('i',con[12:16][::-1])[0])
-          for i in range(16,len(con)):
-             x.append(struct.unpack('B',con[i])[0])
+          while 1: 
+            del(con)
+            con=f.read(1024)
+            if len(con)==0:
+               break
+            for i in range(0,len(con)):
+               x.append(struct.unpack('B',con[i])[0])
    
-       #print x
+      # print x
        f.close()
+       return x
        
        
 
 
 if __name__=='__main__':
    
-   f1=getContent('TR-M')
+   f1=getContent('TR-L')
    
 
 
