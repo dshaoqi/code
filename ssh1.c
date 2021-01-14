@@ -3,37 +3,18 @@
 #include<libssh/libssh.h>
 #include<string.h>
 int verify_host(ssh_session ss);
-int verify_user(ssh_session ss);
-int show_remote_process(ssh_session ss);
+int verify_user(ssh_session ss,char *password);
+int carryout_command(ssh_session ss,char *command);
+
+char hostfile[]="/root/C/ssh/host.txt";
+
+ssh_session get_session(char *ip,int port,char *user);
+
+int simplessh(char *ip,char *user,char *password,char *command);
+
 
 int main(){
-	int rc;
-	ssh_session ss = ssh_new();
-	if(ss==NULL){
-		printf("ssh_new error\n");
-		exit(-1);
-	}
-	
-	int verb = SSH_LOG_PROTOCOL;
-	int port = 22;
-	ssh_options_set(ss,SSH_OPTIONS_HOST,"localhost");
-	ssh_options_set(ss,SSH_OPTIONS_LOG_VERBOSITY,&verb);
-	ssh_options_set(ss,SSH_OPTIONS_PORT,&port);
-	rc = ssh_connect(ss);
-    if(rc!=SSH_OK){
-        printf("ssh_connect error\n");
-        exit(-1);
-    }
-
-    if(verify_host(ss)==-1){
-            1;
-            //return -1;
-    }    
-    verify_user(ss);    
-    show_remote_process(ss);
-
-    ssh_disconnect(ss);
-	ssh_free(ss);	
+    simplessh("localhost","root","dsq","ps -ef");
 	return 1;
 }
 
@@ -55,7 +36,7 @@ int verify_host(ssh_session ss){
     hexa = ssh_get_hexa(hash,hlen);
     switch(ssh_session_is_known_server(ss)){
         case SSH_KNOWN_HOSTS_OK:
-            printf("known hosts\n");
+            //printf("known hosts\n");
             return 1;
         case SSH_KNOWN_HOSTS_CHANGED:
             printf("host key chaged\n");
@@ -64,25 +45,11 @@ int verify_host(ssh_session ss){
         case SSH_KNOWN_HOSTS_UNKNOWN:
             printf("the server is unknown, Do you trust\n");
             printf("the key hash is:%s\n",hexa);
-            while(1){
-                printf("yes or no :");
-                fgets(buff,sizeof(buff),stdin);
-                if(strncmp(buff,"yes",3)==0){
-                        printf("get yes\n");
-                        if(ssh_session_update_known_hosts(ss)<0){
-                            printf("update known_hosts wrong\n");
-                        }
-                        else{
-                            printf("update known_hosts ok");
-                            return 1;
-                        }
-                }
-                else if(strncmp(buff,"no",2)==0){
-                        printf("get no\n");
-                        return -1;
-                }
+            if(ssh_session_update_known_hosts(ss)<0){
+                printf("update known_hosts file failed\n");
+                return -1;
             }
-
+            return 1;
         case SSH_KNOWN_HOSTS_NOT_FOUND:
             printf("could not find host file\n");
             return -1;
@@ -94,9 +61,8 @@ int verify_host(ssh_session ss){
     return -1;
 }
 
-int verify_user(ssh_session ss){
+int verify_user(ssh_session ss,char *password){
     //char *password = getpass("Password: ");
-    char password[]="dsq"; 
     if(ssh_userauth_password(ss,NULL,password)!=SSH_AUTH_SUCCESS){
         printf("auth user failed\n");
         return -1;
@@ -105,7 +71,7 @@ int verify_user(ssh_session ss){
 }
 
 
-int show_remote_process(ssh_session ss){
+int carryout_command(ssh_session ss,char *command){
     ssh_channel ch;
     int rc;
     char buffer[1024];
@@ -121,7 +87,7 @@ int show_remote_process(ssh_session ss){
         return -1;
     }
 
-    if(ssh_channel_request_exec(ch,"ps -ef")!=SSH_OK){
+    if(ssh_channel_request_exec(ch,command)!=SSH_OK){
         printf("ssh_channel_request_exec wrong\n");
         return -1;
     }
@@ -134,4 +100,39 @@ int show_remote_process(ssh_session ss){
         else break;
     }
     return 1;
+}
+
+
+
+
+ssh_session get_session(char *ip,int port,char *user){
+    ssh_session ss=ssh_new();
+    if(ss==NULL){
+        printf("ssh_new error\n");
+        exit(-1);
+    }
+    ssh_options_set(ss,SSH_OPTIONS_HOST,"localhost");
+    ssh_options_set(ss,SSH_OPTIONS_USER,user);
+    ssh_options_set(ss,SSH_OPTIONS_LOG_VERBOSITY,SSH_LOG_NOLOG);
+    ssh_options_set(ss,SSH_OPTIONS_PORT,&port);
+    if(ssh_connect(ss)!=SSH_OK){
+        printf("ssh_connect error\n");
+        exit(-1);
+    }
+    else{
+        return ss;
+    }
+}
+
+
+int simplessh(char *ip,char *user,char *password,char *command){
+    ssh_session ss = get_session(ip,22,user);
+    if(verify_host(ss)==-1){
+        printf("verify host not pass\n");
+    }
+    verify_user(ss,password);
+    carryout_command(ss,command);
+    ssh_disconnect(ss);
+    ssh_free(ss);
+
 }
